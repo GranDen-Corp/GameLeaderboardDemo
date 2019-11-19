@@ -1,4 +1,4 @@
-﻿using Interfaces;
+using Interfaces;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Configuration;
@@ -24,7 +24,8 @@ namespace ConsoleClient
             {
                 using (var client = await CreateOrleansClient())
                 {
-                    await DoClientWork(client);
+                    //await DoClientWork(client);
+                    await DoStatefulWork(client);
                     Console.ReadKey();
                     return 0;
                 }
@@ -84,6 +85,42 @@ namespace ConsoleClient
 
             var response = await grain.HelloWorld(name);
             Console.WriteLine($"\n\n{response}\n\n");
+        }
+        private static async Task DoStatefulWork(IClusterClient client)
+        {
+            var grain1 = client.GetGrain<IVisitTrackerGrain>("aaaaa@gmail.com");
+            var grain2 = client.GetGrain<IVisitTrackerGrain>("bbbbb@gmail.com");
+            await PrettyPrintGrainVisits(grain1);
+            await PrettyPrintGrainVisits(grain2);
+            PrintSeparatorThing();
+
+            Console.WriteLine("Some people are visiting!");
+            await grain1.Visit();
+            await grain1.Visit();
+            await grain2.Visit();
+            PrintSeparatorThing();
+
+            await PrettyPrintGrainVisits(grain1);
+            await PrettyPrintGrainVisits(grain2);
+            PrintSeparatorThing();
+
+            Console.Write("Visiting even more!");
+            for (int i = 0; i < 5; i++)
+            {
+                await grain1.Visit();
+            }
+            PrintSeparatorThing();
+
+            await PrettyPrintGrainVisits(grain1);
+            await PrettyPrintGrainVisits(grain2);
+        }
+        private static async Task PrettyPrintGrainVisits(IVisitTrackerGrain grain)
+        {
+            Console.WriteLine($"{grain.GetPrimaryKeyString()} has visited {await grain.GetNumberOfVisits()} times");
+        }
+        private static void PrintSeparatorThing()
+        {
+            Console.WriteLine($"{Environment.NewLine}-----{Environment.NewLine}");
         }
     }
 }

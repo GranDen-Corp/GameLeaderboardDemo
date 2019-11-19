@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+using Common;
+using Microsoft.Extensions.Logging;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using System;
@@ -41,6 +42,7 @@ namespace SiloHost
                     options.ServiceId = "HelloApp";
                 })
                 .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
+                .AddMemoryGrainStorage(Constants.OrleansMemoryProvider)
                 .ConfigureLogging(logging => logging.AddConsole())
                 .Build();
 
