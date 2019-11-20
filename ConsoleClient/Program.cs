@@ -1,8 +1,11 @@
+using Common;
 using Interfaces;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Configuration;
+using Orleans.Hosting;
 using Orleans.Runtime;
+using Orleans.Streams;
 using System;
 using System.Threading.Tasks;
 
@@ -11,9 +14,9 @@ namespace ConsoleClient
     public class Program
     {
         private const int RetryDelaySec = 4;
+        private const string ChannelName = "BroadcastDemo";
         private const int MaxRetry = 5;
         private static int retryCount = 0;
-
         public static int Main(string[] args)
         {
             return RunMainAsync().Result;
@@ -25,7 +28,8 @@ namespace ConsoleClient
                 using (var client = await CreateOrleansClient())
                 {
                     //await DoClientWork(client);
-                    await DoStatefulWork(client);
+                    //await DoStatefulWork(client);
+                    await DoChannelWork(client);
                     Console.ReadKey();
                     return 0;
                 }
@@ -47,6 +51,7 @@ namespace ConsoleClient
                                     options.ClusterId = "dev";
                                     options.ServiceId = "HelloApp";
                                 })
+                                .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider)
                                 .ConfigureLogging(logging => logging.AddConsole())
                                 .Build();
             await client.Connect(RetryFilter);
@@ -121,6 +126,46 @@ namespace ConsoleClient
         private static void PrintSeparatorThing()
         {
             Console.WriteLine($"{Environment.NewLine}-----{Environment.NewLine}");
+        }
+        private static async Task DoChannelWork(IClusterClient client)
+        {
+            Console.WriteLine("Your Name?");
+            var name = Console.ReadLine();
+
+            await JoinChannel(client, name);
+
+            Console.WriteLine("Type '<any text>' to send a message");
+            Console.WriteLine("Type '/exit' to exit client.");
+            string input;
+            do
+            {
+                input = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(input)) continue;
+
+                if (!input.StartsWith("/exit"))
+                {
+                    await SendMessage(client, name, input);
+                }
+            } while (input != "/exit");
+        }
+        private static async Task JoinChannel(IClusterClient client, string userName)
+        {
+            var channel = client.GetGrain<IChannelGrain>(ChannelName);
+            var channelId = await channel.Join(userName);
+            var stream = client.GetStreamProvider(Constants.OrleansStreamProvider)
+                            .GetStream<string>(channelId, Constants.OrleansStreamNameSpace);
+
+            await stream.SubscribeAsync((message, token) =>
+            {
+                Console.WriteLine(message);
+                return Task.CompletedTask;
+            });
+        }
+        private static async Task SendMessage(IClusterClient client, string userName, string message)
+        {
+            var room = client.GetGrain<IChannelGrain>(ChannelName);
+            await room.Broadcast(userName, message);
         }
     }
 }

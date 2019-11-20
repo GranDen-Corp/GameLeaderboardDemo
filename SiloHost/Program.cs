@@ -42,7 +42,14 @@ namespace SiloHost
                     options.ServiceId = "HelloApp";
                 })
                 .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
+                // need to configure a grain storage called "PubSubStore" for using
+                // streaming with ExplicitSubscribe pubsub type. Depends on your
+                // application requirements, you can configure your silo with other
+                // stream providers, which can provide other features, such as
+                // persistence or recoverability. For more information, please see
+                // http://dotnet.github.io/orleans/Documentation/streaming/streams_programming_APIs.html#fully-managed-and-reliable-streaming-pub-suba-namefully-managed-and-reliable-streaming-pub-suba
                 .AddMemoryGrainStorage(Constants.OrleansMemoryProvider)
+                .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider)
                 .ConfigureLogging(logging => logging.AddConsole())
                 .Build();
 
