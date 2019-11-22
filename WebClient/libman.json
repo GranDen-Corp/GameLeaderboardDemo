@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "defaultProvider": "cdnjs",
+  "libraries": [
+    {
+      "library": "font-awesome@5.11.2",
+      "destination": "wwwroot/lib/font-awesome/"
+    },
+    {
+      "provider": "unpkg",
+      "library": "datatables@1.10.18",
+      "destination": "wwwroot/lib/datatables/",
+      "files": [
+        "media/css/jquery.dataTables.css",
+        "media/css/jquery.dataTables.min.css",
+        "media/images/favicon.ico",
+        "media/images/Sorting icons.psd",
+        "media/images/sort_asc.png",
+        "media/images/sort_asc_disabled.png",
+        "media/images/sort_both.png",
+        "media/images/sort_desc.png",
+        "media/images/sort_desc_disabled.png",
+        "media/js/jquery.dataTables.js",
+        "media/js/jquery.dataTables.min.js"
+      ]
+    },
+    {
+      "provider": "unpkg",
+      "library": "@microsoft/signalr@3.0.0",
+      "destination": "wwwroot/js/signalr/",
+      "files": [
+        "dist/browser/signalr.js",
+        "dist/browser/signalr.min.js"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 using Common;
 using Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Configuration;
@@ -7,6 +11,9 @@ using Orleans.Hosting;
 using Orleans.Runtime;
 using Orleans.Streams;
 using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ConsoleClient
@@ -17,8 +24,15 @@ namespace ConsoleClient
         private const string ChannelName = "BroadcastDemo";
         private const int MaxRetry = 5;
         private static int retryCount = 0;
+        private static IConfiguration Configuration { get; set; }
         public static int Main(string[] args)
         {
+            var builder = new ConfigurationBuilder()
+                            .SetBasePath(Directory.GetCurrentDirectory())
+                            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", optional: true, reloadOnChange: true)
+                            .AddEnvironmentVariables();
+            Configuration = builder.Build();
             return RunMainAsync().Result;
         }
         public static async Task<int> RunMainAsync()
@@ -29,7 +43,8 @@ namespace ConsoleClient
                 {
                     //await DoClientWork(client);
                     //await DoStatefulWork(client);
-                    await DoChannelWork(client);
+                    //await DoChannelWork(client);
+                    await DoGamePlayerWork(client);
                     Console.ReadKey();
                     return 0;
                 }
@@ -48,8 +63,8 @@ namespace ConsoleClient
                                 .UseLocalhostClustering()
                                 .Configure<ClusterOptions>(options =>
                                 {
-                                    options.ClusterId = "dev";
-                                    options.ServiceId = "HelloApp";
+                                    options.ClusterId = Constants.ClusterId;
+                                    options.ServiceId = Constants.ServiceId;
                                 })
                                 .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider)
                                 .ConfigureLogging(logging => logging.AddConsole())
@@ -166,6 +181,35 @@ namespace ConsoleClient
         {
             var room = client.GetGrain<IChannelGrain>(ChannelName);
             await room.Broadcast(userName, message);
+        }
+        private static async Task DoGamePlayerWork(IClusterClient client)
+        {
+            var options = new DbContextOptionsBuilder<GameContext>()
+                            .UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
+                            .Options;
+            using (var context = new GameContext(options))
+            {
+                var game = context.Games.FirstOrDefault();
+                var leaderboard = client.GetGrain<IGameGrain>(game.Id);
+                var players = context.Players.Take(20).ToList();
+                var points = new[] { 1, 2, 4, 10 };
+                var RNM = new Random();
+
+                while (!Console.KeyAvailable)
+                {
+                    var player = players[RNM.Next(players.Count())];
+                    var point = points[RNM.Next(points.Length)];
+
+                    Console.WriteLine(player.Name);
+                    Console.WriteLine(game.Name);
+                    Console.WriteLine(point);
+
+                    await leaderboard.AddPoint(player.Id, point);
+                    Console.WriteLine($"Player {player} add score {point} to {leaderboard}");
+                    Thread.Sleep(1000);
+                }
+            }
+            Console.WriteLine("Stop simulate.");
         }
     }
 }

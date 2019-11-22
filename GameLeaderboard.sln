@@ -3,15 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29418.71
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interfaces", "Interfaces\Interfaces.csproj", "{54D247CF-AB68-4DB7-B814-A6E2E098ED25}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Interfaces", "Interfaces\Interfaces.csproj", "{54D247CF-AB68-4DB7-B814-A6E2E098ED25}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grains", "Grains\Grains.csproj", "{55D005D3-B3ED-4BA5-BFCB-B49852F43CBC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grains", "Grains\Grains.csproj", "{55D005D3-B3ED-4BA5-BFCB-B49852F43CBC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleClient", "ConsoleClient\ConsoleClient.csproj", "{EEE5C583-0ACC-490A-9D80-6C877C9104CE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleClient", "ConsoleClient\ConsoleClient.csproj", "{EEE5C583-0ACC-490A-9D80-6C877C9104CE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SiloHost", "SiloHost\SiloHost.csproj", "{D7F1AB3F-B37A-4AB8-BBF1-4B15E26D7E9E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SiloHost", "SiloHost\SiloHost.csproj", "{D7F1AB3F-B37A-4AB8-BBF1-4B15E26D7E9E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{21D10731-6F63-453C-9225-6DCF478887ED}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csproj", "{21D10731-6F63-453C-9225-6DCF478887ED}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebClient", "WebClient\WebClient.csproj", "{8D9B6CFA-1174-441B-96C5-B59A3A4EAA0C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{21D10731-6F63-453C-9225-6DCF478887ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21D10731-6F63-453C-9225-6DCF478887ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21D10731-6F63-453C-9225-6DCF478887ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D9B6CFA-1174-441B-96C5-B59A3A4EAA0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D9B6CFA-1174-441B-96C5-B59A3A4EAA0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D9B6CFA-1174-441B-96C5-B59A3A4EAA0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D9B6CFA-1174-441B-96C5-B59A3A4EAA0C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

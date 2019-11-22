@@ -1,0 +1,52 @@
+@page
+@model IndexModel
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Game List</h3>
+                <div class="card-tools">
+                    <div class="input-group input-group-sm" style="width: 150px;">
+                        <input type="text" name="table_search" class="form-control float-right" placeholder="Search">
+                        <div class="input-group-append">
+                            <button type="submit" class="btn btn-default"><i class="fas fa-search"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body table-responsive pad">
+                <a class="btn btn-primary" asp-page="Game">Create New Game</a>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Game uid</th>
+                            <th>Game Name</th>
+                            <th>Top Rank</th>
+                            <th>Get Rank Around Player</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var game in Model.Games)
+                        {
+                            <tr>
+                                <td>@game.Id</td>
+                                <td>@game.Name</td>
+                                <td>
+                                    <a class="text-muted" asp-page="TopRank" asp-route-id="@game.Id">
+                                        <i class="fas fa-search"></i>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a class="text-muted" asp-page="AroundRank" asp-route-id="@game.Id">
+                                        <i class="fas fa-search"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

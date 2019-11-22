@@ -38,8 +38,8 @@ namespace SiloHost
                 .UseLocalhostClustering()
                 .Configure<ClusterOptions>(options =>
                 {
-                    options.ClusterId = "dev";
-                    options.ServiceId = "HelloApp";
+                    options.ClusterId = Constants.ClusterId;
+                    options.ServiceId = Constants.ServiceId;
                 })
                 .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
                 // need to configure a grain storage called "PubSubStore" for using

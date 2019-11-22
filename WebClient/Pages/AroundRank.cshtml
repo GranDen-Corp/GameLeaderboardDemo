@@ -1,0 +1,111 @@
+@page "{id?}"
+@model AroundRankModel
+@{
+    ViewData["Title"] = "AroundRank";
+}
+
+<div class="row">
+    <div class="col-6">
+        <input class="view-player-id" type="text" hidden />
+        <div class="card">
+            <div class="card-title">@Model.Game.Name - Joined Player List</div>
+            <div class="card-body">
+                <div class="card-body table-responsive pad">
+                    <table id="playerlist" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Player uid</th>
+                                <th>Player Name</th>
+                                <th>View More</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var player in Model.Players)
+                            {
+                                <tr>
+                                    <td>@player.Key</td>
+                                    <td>@player.Value</td>
+                                    <td>
+                                        <a class="text-muted" onclick="onViewPlayerIdChange('@player.Key')">
+                                            <i class="fas fa-search"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="card">
+            <div class="card-title">@Model.Game.Name - View Around</div>
+            <div class="card-body">
+                <div class="card-body table-responsive pad">
+                    <table id="leaderboard" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player uid</th>
+                                <th>Player Name</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/lib/datatables/media/js/jquery.dataTables.min.js"></script>
+    <script src="~/js/signalr/dist/browser/signalr.js"></script>
+    <script>
+        var table;
+        var viewPlayerId = '';
+        var leaderboardId = "@Model.Game.Id";
+        var refreshUrl = `/AroundRank/${leaderboardId}?handler=Refresh`;
+
+        function onViewPlayerIdChange(playerId) {
+            viewPlayerId = playerId;
+            refreshUrl = `/AroundRank/${leaderboardId}?handler=Refresh&playerId=${playerId}`;
+            table.ajax.url(refreshUrl).load();
+        }
+
+        (function () {
+            table = $('#leaderboard').DataTable({
+                ajax: {
+                    type: "GET",
+                    url: refreshUrl,
+                    dataType: "JSON",
+                    dataSrc: "",
+                    error: function (xhr, error, code) {
+                        console.log(xhr);
+                        console.log(code);
+                    },
+                    language: {
+                        "infoEmpty": "Empty"
+                    }
+                },
+                searching: false,
+                paging: false,
+                info: false,
+                serverSide: true,
+                columns: [
+                    { data: "rank", name: "rank" },
+                    { data: "id", name: "id" },
+                    { data: "name", name: "name" },
+                    { data: "score", name: "score" }
+                ]
+            });
+            var connection = new signalR.HubConnectionBuilder().withUrl("/gameHubs").build();
+
+            connection.on("BroadcastLeaderboardUpdate", function () {
+                table.ajax.reload();
+            });
+
+            connection.start();
+        }());
+    </script>
+}

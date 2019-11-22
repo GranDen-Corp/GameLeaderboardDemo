@@ -1,0 +1,70 @@
+@page "{id?}"
+@model TopRankModel
+@{
+    ViewData["Title"] = "TopRank";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-title">@Model.Game.Name - Leaderboard Top Rank</div>
+            <div class="card-body">
+                <div class="card-body table-responsive pad">
+                    <table id="leaderboard" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player uid</th>
+                                <th>Player Name</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/lib/datatables/media/js/jquery.dataTables.min.js"></script>
+    <script src="~/js/signalr/dist/browser/signalr.js"></script>
+    <script>
+        (function () {
+            var leaderboardId = "@Model.Game.Id";
+            var refreshUrl = `/TopRank/${leaderboardId}?handler=Refresh`;
+            console.log(refreshUrl);
+            var table = $('#leaderboard').DataTable({
+                ajax: {
+                    type: "GET",
+                    url: refreshUrl,
+                    dataType: "JSON",
+                    dataSrc: "",
+                    error: function (xhr, error, code) {
+                        console.log(xhr);
+                        console.log(code);
+                    },
+                    language: {
+                        "infoEmpty": "Empty"
+                    }
+                },
+                searching: false,
+                paging: false,
+                info: false,
+                serverSide: true,
+                columns: [
+                    { data: "rank", name: "rank" },
+                    { data: "id", name: "id" },
+                    { data: "name", name: "name" },
+                    { data: "score", name: "score" }
+                ]
+            });
+            var connection = new signalR.HubConnectionBuilder().withUrl("/gameHubs").build();
+
+            connection.on("BroadcastLeaderboardUpdate", function () {
+                table.ajax.reload();
+            });
+
+            connection.start();
+        }());
+    </script>
+}
