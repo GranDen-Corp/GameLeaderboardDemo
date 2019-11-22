@@ -3,6 +3,7 @@ using Common.Dto;
 using Interfaces;
 using Orleans;
 using Orleans.Providers;
+using Orleans.Runtime;
 using Orleans.Streams;
 using System;
 using System.Collections.Generic;
@@ -12,14 +13,20 @@ using System.Threading.Tasks;
 
 namespace Grains
 {
+    [Serializable]
     public class GameState
     {
         public List<KeyValuePair<Guid, int>> Leaderboard { get; set; } = new List<KeyValuePair<Guid, int>>();
     }
     [StorageProvider(ProviderName = Constants.OrleansDataStorageProvider)]
-    public class GameGrain : Grain<GameState>, IGameGrain
+    public class GameGrain : Grain, IGameGrain
     {
         private IAsyncStream<bool> stream;
+        private readonly IPersistentState<GameState> _game;
+        public GameGrain([PersistentState(nameof(GameState), Constants.OrleansDataStorageProvider)] IPersistentState<GameState> game)
+        {
+            _game = game;
+        }
         public override Task OnActivateAsync()
         {
             var streamProvider = GetStreamProvider(Constants.OrleansStreamProvider);
@@ -31,18 +38,18 @@ namespace Grains
             bool isChanged = false;
             try
             {
-                var rank = await this.GetPlayerRank(playerId);
+                var rank = await GetPlayerRank(playerId);
                 if (rank < 0)
                 {
-                    this.State.Leaderboard.Add(new KeyValuePair<Guid, int>(playerId, point));
+                    _game.State.Leaderboard.Add(new KeyValuePair<Guid, int>(playerId, point));
                 }
                 else
                 {
-                    var newPoint = this.State.Leaderboard[rank].Value + point;
-                    this.State.Leaderboard[rank] = new KeyValuePair<Guid, int>(playerId, newPoint);
+                    var newPoint = _game.State.Leaderboard[rank].Value + point;
+                    _game.State.Leaderboard[rank] = new KeyValuePair<Guid, int>(playerId, newPoint);
                 }
-                this.State.Leaderboard.Sort((x, y) => -1 * x.Value.CompareTo(y.Value));
-                await this.WriteStateAsync();
+                _game.State.Leaderboard.Sort((x, y) => -1 * x.Value.CompareTo(y.Value));
+                await _game.WriteStateAsync();
                 isChanged = true;
             }
             catch (Exception ex)
@@ -61,15 +68,15 @@ namespace Grains
             var playerRank = await GetPlayerRank(playerId);
             var start = playerRank - count < 0 ? 0 : playerRank - count;
             var aboveCount = start == 0 ? playerRank + 1 : count + 1;
-            var result = this.State.Leaderboard
-                                        .GetRange(start, aboveCount)
-                                        .Select((element, index) => new PlayerDto
-                                        {
-                                            Id = element.Key,
-                                            Rank = index + 1 + start,
-                                            Score = element.Value
-                                        })
-                                        .ToImmutableList();
+            var result = _game.State.Leaderboard
+                                    .GetRange(start, aboveCount)
+                                    .Select((element, index) => new PlayerDto
+                                    {
+                                        Id = element.Key,
+                                        Rank = index + 1 + start,
+                                        Score = element.Value
+                                    })
+                                    .ToImmutableList();
             return result;
         }
 
@@ -77,31 +84,31 @@ namespace Grains
         {
             var playerRank = await GetPlayerRank(playerId);
             var start = playerRank;
-            int belowCount = (playerRank + count >= this.State.Leaderboard.Count() ?
-                                this.State.Leaderboard.Count() - playerRank :
-                                count + 1);
-            var result = this.State.Leaderboard
-                                        .GetRange(start, belowCount)
-                                        .Select((player, index) => new PlayerDto
-                                        {
-                                            Rank = index + 1 + start,
-                                            Id = player.Key,
-                                            Score = player.Value
-                                        })
-                                        .ToImmutableList();
+            int belowCount = playerRank + count >= _game.State.Leaderboard.Count() ?
+                                _game.State.Leaderboard.Count() - playerRank :
+                                count + 1;
+            var result = _game.State.Leaderboard
+                                    .GetRange(start, belowCount)
+                                    .Select((player, index) => new PlayerDto
+                                    {
+                                        Rank = index + 1 + start,
+                                        Id = player.Key,
+                                        Score = player.Value
+                                    })
+                                    .ToImmutableList();
             return result;
         }
 
         public Task<int> GetPlayerRank(Guid playerId)
         {
-            var rank = this.State.Leaderboard.FindIndex(player => player.Key.Equals(playerId));
+            var rank = _game.State.Leaderboard.FindIndex(player => player.Key.Equals(playerId));
             return Task.FromResult(rank);
         }
 
         public Task<ImmutableList<PlayerDto>> GetTopPlayer(int count = Constants.TopCount)
         {
-            var topCount = Math.Min(count, this.State.Leaderboard.Count);
-            var result = this.State.Leaderboard
+            var topCount = Math.Min(count, _game.State.Leaderboard.Count);
+            var result = this._game.State.Leaderboard
                             .Take(topCount)
                             .Select((element, index) => new PlayerDto
                             {
@@ -115,12 +122,12 @@ namespace Grains
 
         public Task<Guid> Subscribe()
         {
-            return Task.FromResult(this.stream.Guid);
+            return Task.FromResult(stream.Guid);
         }
 
         public Task<ImmutableList<Guid>> GetJoinedPlayers()
         {
-            var players = this.State.Leaderboard.Select(p => p.Key).ToImmutableList();
+            var players = _game.State.Leaderboard.Select(p => p.Key).ToImmutableList();
             return Task.FromResult(players);
         }
     }
