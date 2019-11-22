@@ -19,9 +19,14 @@ namespace WebClient
     public class Startup
     {
         private int attempt = 0;
-        public Startup(IConfiguration configuration)
+        public Startup(IWebHostEnvironment env)
         {
-            Configuration = configuration;
+            var builder = new ConfigurationBuilder()
+                                .SetBasePath(env.ContentRootPath)
+                                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true)
+                                .AddEnvironmentVariables();
+            Configuration = builder.Build();
         }
 
         public IConfiguration Configuration { get; }
@@ -68,13 +73,19 @@ namespace WebClient
         private IClusterClient CreateClusterClient(IServiceProvider serviceProvider)
         {
             attempt = 0;
+            var invariant = Configuration.GetSection("Invariant").GetValue<string>("DefaultDatabase");
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
             var client = new ClientBuilder()
                               .Configure<ClusterOptions>(options =>
                               {
                                   options.ClusterId = Constants.ClusterId;
                                   options.ServiceId = Constants.ServiceId;
                               })
-                              .UseLocalhostClustering()
+                              .UseAdoNetClustering(options =>
+                              {
+                                  options.Invariant = invariant;
+                                  options.ConnectionString = connectionString;
+                              })
                               .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider)
                               .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(IGameGrain).Assembly).WithReferences())
                               .Build();

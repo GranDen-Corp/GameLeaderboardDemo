@@ -1,4 +1,6 @@
 using Common;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Orleans.Configuration;
 using Orleans.Hosting;
@@ -10,6 +12,7 @@ namespace SiloHost
 {
     public class Program
     {
+        public static IConfiguration Configuration { get; set; }
         public static int Main(string[] args)
         {
             return RunMainAsync().Result;
@@ -18,6 +21,10 @@ namespace SiloHost
         {
             try
             {
+                var environmentName = GetEnvironment();
+                var configurationBuilder = CreateConfigurationBuilder(environmentName);
+                Configuration = configurationBuilder.Build();
+
                 var host = await StartSilo();
                 Console.WriteLine("Press Enter to terminate...");
                 Console.ReadLine();
@@ -34,12 +41,24 @@ namespace SiloHost
         }
         private static async Task<ISiloHost> StartSilo()
         {
+            var invariant = Configuration.GetSection("Invariant").GetValue<string>("DefaultDatabase");
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
             var silo = new SiloHostBuilder()
-                .UseLocalhostClustering()
                 .Configure<ClusterOptions>(options =>
                 {
                     options.ClusterId = Constants.ClusterId;
                     options.ServiceId = Constants.ServiceId;
+                })
+                .UseAdoNetClustering(options =>
+                {
+                    options.Invariant = invariant;
+                    options.ConnectionString = connectionString;
+                })
+                .AddAdoNetGrainStorage(Constants.OrleansDataStorageProvider, options =>
+                {
+                    options.Invariant = invariant;
+                    options.ConnectionString = connectionString;
+                    options.UseJsonFormat = true;
                 })
                 .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
                 // need to configure a grain storage called "PubSubStore" for using
@@ -55,6 +74,24 @@ namespace SiloHost
 
             await silo.StartAsync();
             return silo;
+        }
+        private static string GetEnvironment()
+        {
+            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT").ToLower();
+            if (string.IsNullOrEmpty(environmentName))
+            {
+                return "Production";
+            }
+            return environmentName;
+        }
+        private static IConfigurationBuilder CreateConfigurationBuilder(string environmentName)
+        {
+            var config = new ConfigurationBuilder()
+                             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                             .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true)
+                             .AddEnvironmentVariables();
+            return config;
         }
     }
 }

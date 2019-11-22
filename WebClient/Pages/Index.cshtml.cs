@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace WebClient.Pages
 {
@@ -21,7 +20,7 @@ namespace WebClient.Pages
             _context = context;
         }
 
-        public async Task OnGetAsync()
+        public void OnGet()
         {
             this.Games = new List<Game>();
             this.Games.AddRange(_context.Games.ToList());

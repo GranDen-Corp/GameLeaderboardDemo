@@ -3,6 +3,7 @@ namespace Common
     public class Constants
     {
         public const string OrleansMemoryProvider = "PubSubStore";
+        public const string OrleansDataStorageProvider = "OrleanStorage";
         public const string OrleansStreamProvider = "OrleansStream";
         public const string OrleansStreamNameSpace = "OrleansStreamNameSpace";
         public const string ClusterId = "ClusterId";

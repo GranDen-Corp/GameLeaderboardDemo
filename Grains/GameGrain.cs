@@ -16,7 +16,7 @@ namespace Grains
     {
         public List<KeyValuePair<Guid, int>> Leaderboard { get; set; } = new List<KeyValuePair<Guid, int>>();
     }
-    [StorageProvider(ProviderName = Constants.OrleansMemoryProvider)]
+    [StorageProvider(ProviderName = Constants.OrleansDataStorageProvider)]
     public class GameGrain : Grain<GameState>, IGameGrain
     {
         private IAsyncStream<bool> stream;
