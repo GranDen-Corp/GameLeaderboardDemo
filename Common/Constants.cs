@@ -15,5 +15,7 @@ namespace Common
         public const int AboveCount = 3;
         public const int BeloweCount = 3;
 
+        public const int SiloPort = 11111;
+        public const int GatewayPort = 30000;
     }
 }
