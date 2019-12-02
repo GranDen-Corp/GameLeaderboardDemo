@@ -11,8 +11,11 @@ using Orleans.Hosting;
 using Orleans.Runtime;
 using Orleans.Streams;
 using System;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -39,15 +42,9 @@ namespace ConsoleClient
         {
             try
             {
-                using (var client = await CreateOrleansClient())
-                {
-                    //await DoClientWork(client);
-                    //await DoStatefulWork(client);
-                    //await DoChannelWork(client);
-                    await DoGamePlayerWork(client);
-                    Console.ReadKey();
-                    return 0;
-                }
+                await DoGamePlayerWork();
+                Console.ReadKey();
+                return 0;
             }
             catch (Exception e)
             {
@@ -59,12 +56,18 @@ namespace ConsoleClient
         private static async Task<IClusterClient> CreateOrleansClient()
         {
             retryCount = 0;
+            var invariant = Configuration.GetSection("Invariant").GetValue<string>("DefaultDatabase");
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
             var client = new ClientBuilder()
-                                .UseLocalhostClustering()
                                 .Configure<ClusterOptions>(options =>
                                 {
                                     options.ClusterId = Constants.ClusterId;
                                     options.ServiceId = Constants.ServiceId;
+                                })
+                                .UseAdoNetClustering(options =>
+                                {
+                                    options.Invariant = invariant;
+                                    options.ConnectionString = connectionString;
                                 })
                                 .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider)
                                 .ConfigureLogging(logging => logging.AddConsole())
@@ -182,7 +185,7 @@ namespace ConsoleClient
             var room = client.GetGrain<IChannelGrain>(ChannelName);
             await room.Broadcast(userName, message);
         }
-        private static async Task DoGamePlayerWork(IClusterClient client)
+        private static async Task DoGamePlayerWork()
         {
             var options = new DbContextOptionsBuilder<GameContext>()
                             .UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
@@ -190,7 +193,6 @@ namespace ConsoleClient
             using (var context = new GameContext(options))
             {
                 var game = context.Games.FirstOrDefault();
-                var leaderboard = client.GetGrain<IGameGrain>(game.Id);
                 var players = context.Players.Take(20).ToList();
                 var points = new[] { 1, 2, 4, 10 };
                 var RNM = new Random();
@@ -204,12 +206,37 @@ namespace ConsoleClient
                     Console.WriteLine(game.Name);
                     Console.WriteLine(point);
 
-                    await leaderboard.AddPoint(player.Id, point);
-                    Console.WriteLine($"Player {player} add score {point} to {leaderboard}");
-                    Thread.Sleep(1000);
+                    PostAddPoint(player.Id, point);
+                    Thread.Sleep(200);
                 }
             }
             Console.WriteLine("Stop simulate.");
+
+            void PostAddPoint(Guid playerId, int point)
+            {
+                string url = "https://localhost:44309/api/Player/Point";
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                request.Method = "POST";
+                request.ContentType = "application/x-www-form-urlencoded";
+
+                NameValueCollection postParams = System.Web.HttpUtility.ParseQueryString(string.Empty);
+                postParams.Add("playerId", playerId.ToString());
+                postParams.Add("point", point.ToString());
+
+                byte[] byteArray = Encoding.UTF8.GetBytes(postParams.ToString());
+                using (Stream reqStream = request.GetRequestStream())
+                {
+                    reqStream.Write(byteArray, 0, byteArray.Length);
+                }
+
+                using (WebResponse response = request.GetResponse())
+                {
+                    using (StreamReader sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
+                    {
+                        _ = sr.ReadToEnd();
+                    }
+                }
+            }
         }
     }
 }
