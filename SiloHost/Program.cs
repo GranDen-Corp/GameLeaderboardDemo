@@ -5,9 +5,7 @@ using Microsoft.Extensions.Logging;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using System;
-using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace SiloHost
@@ -43,13 +41,9 @@ namespace SiloHost
             var invariant = Configuration.GetSection("Invariant").GetValue<string>("DefaultDatabase");
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
             var name = Dns.GetHostName(); // get container id
-            foreach (var address in Dns.GetHostEntry(name).AddressList) {
-                Console.WriteLine(address.ToString());
-            }
             var host = new HostBuilder()
                 .UseOrleans((context, siloBuilder) =>
                 {
-
                     siloBuilder.Configure<ProcessExitHandlingOptions>(options =>
                     {
                         // https://github.com/dotnet/orleans/issues/5552#issuecomment-486938815
@@ -71,6 +65,12 @@ namespace SiloHost
                         options.ConnectionString = connectionString;
                         options.UseJsonFormat = true;
                     })
+                    .UseAdoNetReminderService(options =>
+                    {
+                        options.Invariant = invariant;
+                        options.ConnectionString = connectionString;
+                    })
+                    .UseInMemoryReminderService()
                     .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
                     // need to configure a grain storage called "PubSubStore" for using
                     // streaming with ExplicitSubscribe pubsub type. Depends on your

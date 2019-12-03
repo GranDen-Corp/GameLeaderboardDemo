@@ -19,23 +19,54 @@ namespace Grains
         public List<KeyValuePair<Guid, int>> Leaderboard { get; set; } = new List<KeyValuePair<Guid, int>>();
     }
     [StorageProvider(ProviderName = Constants.OrleansDataStorageProvider)]
-    public class GameGrain : Grain, IGameGrain
+    public class GameGrain : Grain, IGameGrain, IRemindable
     {
+        private bool isStateChanged = false;
         private IAsyncStream<bool> stream;
+        private IGrainReminder _reminder;
         private readonly IPersistentState<GameState> _game;
         public GameGrain([PersistentState(nameof(GameState), Constants.OrleansDataStorageProvider)] IPersistentState<GameState> game)
         {
             _game = game;
         }
-        public override Task OnActivateAsync()
+        public override async Task OnActivateAsync()
         {
             var streamProvider = GetStreamProvider(Constants.OrleansStreamProvider);
             stream = streamProvider.GetStream<bool>(this.GetPrimaryKey(), Constants.OrleansStreamNameSpace);
-            return base.OnActivateAsync();
+
+            RegisterTimer(async o =>
+            {
+                if (isStateChanged)
+                {
+                    await _game.WriteStateAsync();
+                    isStateChanged = false;
+                }
+                else
+                {
+                    await _game.ReadStateAsync();
+                }
+            }, null,
+            TimeSpan.FromSeconds(Constants.WriteBackPeriodSecond),
+            TimeSpan.FromSeconds(Constants.WriteBackPeriodSecond));
+
+            _reminder = await RegisterOrUpdateReminder(
+                this.GetPrimaryKey().ToString(),
+                TimeSpan.FromMinutes(Constants.WriteStreamDelayMinute),
+                TimeSpan.FromMinutes(Constants.WriteStreamDelayMinute) // apparently the minimum
+            );
+
+            await base.OnActivateAsync();
+            return;
+        }
+
+        public override async Task OnDeactivateAsync()
+        {
+            await UnregisterReminder(_reminder);
+            await base.OnDeactivateAsync();
+            return;
         }
         public async Task AddPoint(Guid playerId, int point)
         {
-            bool isChanged = false;
             try
             {
                 var rank = await GetPlayerRank(playerId);
@@ -49,16 +80,11 @@ namespace Grains
                     _game.State.Leaderboard[rank] = new KeyValuePair<Guid, int>(playerId, newPoint);
                 }
                 _game.State.Leaderboard.Sort((x, y) => -1 * x.Value.CompareTo(y.Value));
-                await _game.WriteStateAsync();
-                isChanged = true;
+                isStateChanged = true;
             }
             catch (Exception ex)
             {
                 throw ex;
-            }
-            finally
-            {
-                await stream.OnNextAsync(isChanged);
             }
             return;
         }
@@ -129,6 +155,11 @@ namespace Grains
         {
             var players = _game.State.Leaderboard.Select(p => p.Key).ToImmutableList();
             return Task.FromResult(players);
+        }
+
+        public async Task ReceiveReminder(string reminderName, TickStatus status)
+        {
+            await stream.OnNextAsync(isStateChanged);
         }
     }
 }

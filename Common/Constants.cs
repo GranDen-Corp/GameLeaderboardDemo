@@ -14,6 +14,7 @@ namespace Common
         public const int TopCount = 100;
         public const int AboveCount = 3;
         public const int BeloweCount = 3;
-
+        public const int WriteBackPeriodSecond = 5;
+        public const int WriteStreamDelayMinute = 1;
     }
 }
