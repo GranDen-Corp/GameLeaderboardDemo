@@ -1,35 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="appsettings.Development.json" />
-    <None Remove="appsettings.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="appsettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Include="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="3.0.0" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.0.0" />
     <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.0.1" />
+    <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.0.0" />
     <PackageReference Include="Microsoft.Orleans.Server" Version="3.0.0" />
+    <PackageReference Include="Serilog" Version="2.9.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="3.2.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="3.1.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.7.0" />
   </ItemGroup>
 
@@ -39,4 +25,10 @@
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="appsettings*.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  
 </Project>

@@ -36,13 +36,13 @@ namespace ConsoleClient
                             .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", optional: true, reloadOnChange: true)
                             .AddEnvironmentVariables();
             Configuration = builder.Build();
-            return RunMainAsync().Result;
+            return RunMain();
         }
-        public static async Task<int> RunMainAsync()
+        public static int RunMain()
         {
             try
             {
-                await DoGamePlayerWork();
+                DoGamePlayerWork();
                 Console.ReadKey();
                 return 0;
             }
@@ -185,41 +185,45 @@ namespace ConsoleClient
             var room = client.GetGrain<IChannelGrain>(ChannelName);
             await room.Broadcast(userName, message);
         }
-        private static async Task DoGamePlayerWork()
+        private static void DoGamePlayerWork()
         {
             var options = new DbContextOptionsBuilder<GameContext>()
                             .UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
                             .Options;
             using (var context = new GameContext(options))
             {
-                var game = context.Games.FirstOrDefault();
-                var players = context.Players.Take(20).ToList();
+                var games = context.Games.ToList();
+                var players = context.Players.ToList();
                 var points = new[] { 1, 2, 4, 10 };
                 var RNM = new Random();
 
                 while (!Console.KeyAvailable)
                 {
+                    var game = games[RNM.Next(games.Count())];
                     var player = players[RNM.Next(players.Count())];
                     var point = points[RNM.Next(points.Length)];
 
-                    Console.WriteLine(player.Name);
                     Console.WriteLine(game.Name);
+                    Console.WriteLine(player.Name);
                     Console.WriteLine(point);
 
-                    PostAddPoint(player.Id, point);
+                    PostAddPoint(game.Id, player.Id, point);
                     Thread.Sleep(200);
                 }
             }
             Console.WriteLine("Stop simulate.");
 
-            void PostAddPoint(Guid playerId, int point)
+            void PostAddPoint(Guid gameId, Guid playerId, int point)
             {
-                string url = "https://localhost:44309/api/Player/Point";
+                string hostUrl = "https://leaderboard-demo-api.azurewebsites.net/";
+                //string hostUrl = "https://localhost:44309";
+                string url = $"{hostUrl}/api/Player/Point";
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
                 request.Method = "POST";
                 request.ContentType = "application/x-www-form-urlencoded";
 
                 NameValueCollection postParams = System.Web.HttpUtility.ParseQueryString(string.Empty);
+                postParams.Add("gameId", gameId.ToString());
                 postParams.Add("playerId", playerId.ToString());
                 postParams.Add("point", point.ToString());
 
@@ -233,7 +237,8 @@ namespace ConsoleClient
                 {
                     using (StreamReader sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
                     {
-                        _ = sr.ReadToEnd();
+                        var res = sr.ReadToEnd();
+                        Console.WriteLine(res);
                     }
                 }
             }

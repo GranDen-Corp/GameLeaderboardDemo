@@ -29,7 +29,7 @@ namespace WebClient.Controller
         {
             if (ModelState.IsValid)
             {
-                var game = _context.Games.FirstOrDefault();
+                var game = _context.Games.FirstOrDefault(x => x.Id.Equals(model.gameId));
                 var leaderboard = _grainClient.GetGrain<IGameGrain>(game.Id);
                 await leaderboard.AddPoint(model.playerId, model.point);
             }
@@ -38,6 +38,7 @@ namespace WebClient.Controller
 
     public class AddPointDto
     {
+        public Guid gameId { get; set; }
         public Guid playerId { get; set; }
         public int point { get; set; }
     }
