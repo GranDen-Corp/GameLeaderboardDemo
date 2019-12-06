@@ -50,7 +50,7 @@ namespace WebClient
                     var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
                     config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                             .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true)
-                            .AddEnvironmentVariables();
+                            .AddEnvironmentVariables("APPSETTING_");
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
