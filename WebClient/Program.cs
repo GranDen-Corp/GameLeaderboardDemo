@@ -59,7 +59,7 @@ namespace WebClient
                 .UseOrleans((context, siloBuilder) =>
                 {
                     IConfiguration Configuration = context.Configuration;
-                    var invariant = Configuration.GetSection("Invariant").GetValue<string>("DefaultDatabase");
+                    var invariant = Configuration["Invariant"];
                     var sqlConnectionString = Configuration.GetConnectionString("DefaultConnection");
 
                     siloBuilder.Configure<ClusterOptions>(options =>
