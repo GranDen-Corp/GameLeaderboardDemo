@@ -17,5 +17,6 @@ namespace Interfaces
         Task<ImmutableList<PlayerDto>> GetTopPlayer(int topCount = Constants.TopCount);
         Task<ImmutableList<PlayerDto>> GetAbovePlayer(Guid playerId, int aboveCount = Constants.AboveCount);
         Task<ImmutableList<PlayerDto>> GetBelowPlayer(Guid playerId, int belowCount = Constants.BeloweCount);
+        Task SummaryReport();
     }
 }

@@ -1,6 +1,8 @@
 using Common;
 using Common.Dto;
+using Common.Models;
 using Interfaces;
+using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Providers;
 using Orleans.Runtime;
@@ -24,10 +26,17 @@ namespace Grains
         private bool isStateChanged = false;
         private IAsyncStream<bool> stream;
         private IGrainReminder _reminder;
+        private readonly ILogger<GameGrain> _logger;
         private readonly IPersistentState<GameState> _game;
-        public GameGrain([PersistentState(nameof(GameState), Constants.OrleansDataStorageProvider)] IPersistentState<GameState> game)
+        private readonly GameContext _gameContext;
+
+        public GameGrain(ILogger<GameGrain> logger,
+            [PersistentState(nameof(GameState), Constants.OrleansDataStorageProvider)] IPersistentState<GameState> game,
+            GameContext gameContext)
         {
+            _logger = logger;
             _game = game;
+            _gameContext = gameContext;
         }
         public override async Task OnActivateAsync()
         {
@@ -69,6 +78,7 @@ namespace Grains
         {
             try
             {
+                _logger.LogWarning(this.RuntimeIdentity);
                 var rank = await GetPlayerRank(playerId);
                 if (rank < 0)
                 {
@@ -160,6 +170,44 @@ namespace Grains
         public async Task ReceiveReminder(string reminderName, TickStatus status)
         {
             await stream.OnNextAsync(isStateChanged);
+        }
+
+        public Task SummaryReport()
+        {
+            var gameId = this.GetPrimaryKey();
+            _game.State.Leaderboard
+                .Select((element, index) => new Summary
+                {
+                    GameId = this.GetPrimaryKey(),
+                    PlayerId = element.Key,
+                    Rank = index + 1,
+                    Score = element.Value
+                })
+                .ToList()
+                .ForEach(element =>
+                {
+                    var player_rank = _gameContext.Summaries
+                                        .FirstOrDefault(s => s.GameId.Equals(element.GameId) &&
+                                                                s.PlayerId.Equals(element.PlayerId));
+                    if (player_rank != null)
+                    {
+                        player_rank.Rank = element.Rank;
+                        player_rank.Score = element.Score;
+                        _gameContext.Summaries.Update(player_rank);
+                    }
+                    else
+                    {
+                        _gameContext.Summaries.Add(new Summary
+                        {
+                            GameId = gameId,
+                            PlayerId = element.PlayerId,
+                            Rank = element.Rank,
+                            Score = element.Score
+                        });
+                    }
+                });
+            _gameContext.SaveChanges();
+            return Task.CompletedTask;
         }
     }
 }

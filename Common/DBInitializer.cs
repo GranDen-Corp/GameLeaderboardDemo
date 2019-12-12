@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 
@@ -7,7 +8,10 @@ namespace Common
     {
         public static void Initialize(GameContext context)
         {
-            context.Database.EnsureCreated();
+            if (!context.Database.EnsureCreated())
+            {
+                context.Database.Migrate();
+            }
 
             if (!context.Players.Any())
             {

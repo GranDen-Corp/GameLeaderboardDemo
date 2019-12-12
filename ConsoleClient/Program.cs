@@ -215,8 +215,7 @@ namespace ConsoleClient
 
             void PostAddPoint(Guid gameId, Guid playerId, int point)
             {
-                string hostUrl = "https://leaderboard-demo-api.azurewebsites.net/";
-                //string hostUrl = "https://localhost:44309";
+                string hostUrl = "https://localhost:44309";
                 string url = $"{hostUrl}/api/Player/Point";
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
                 request.Method = "POST";
