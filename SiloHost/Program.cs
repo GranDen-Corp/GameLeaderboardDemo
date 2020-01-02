@@ -5,7 +5,9 @@ using Microsoft.Extensions.Logging;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using System;
+using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace SiloHost
@@ -13,32 +15,18 @@ namespace SiloHost
     public class Program
     {
         public static IConfiguration Configuration { get; set; }
-        public static int Main(string[] args)
+        public static Task Main(string[] args)
         {
-            return RunMainAsync().Result;
-        }
-        private static async Task<int> RunMainAsync()
-        {
-            try
-            {
-                var environmentName = GetEnvironment();
-                var configurationBuilder = CreateConfigurationBuilder(environmentName);
-                Configuration = configurationBuilder.Build();
+            var environmentName = GetEnvironment();
+            var configurationBuilder = CreateConfigurationBuilder(environmentName);
+            Configuration = configurationBuilder.Build();
 
-                var host = StartSilo();
-                await host.RunAsync();
-
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-                return 1;
-            }
+            var host = StartSilo();
+            return host.RunConsoleAsync();
         }
-        private static IHost StartSilo()
+        private static IHostBuilder StartSilo()
         {
-            var invariant = Configuration.GetSection("Invariant").GetValue<string>("DefaultDatabase");
+            var invariant = Configuration["Invariant"];
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
             var name = Dns.GetHostName(); // get container id
             var host = new HostBuilder()
@@ -71,7 +59,23 @@ namespace SiloHost
                         options.ConnectionString = connectionString;
                     })
                     .UseInMemoryReminderService()
-                    .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
+                    .Configure<EndpointOptions>(options =>
+                    {
+                        var name = Dns.GetHostName(); // get container id
+                        var ip = Dns.GetHostEntry(name).AddressList.FirstOrDefault(x => x.AddressFamily == AddressFamily.InterNetwork);
+                        // Port to use for Silo-to-Silo
+                        options.SiloPort = 11111;
+                        // Port to use for the gateway
+                        options.GatewayPort = 30000;
+                        // IP Address to advertise in the cluster
+                        options.AdvertisedIPAddress = ip;
+                        // The socket used for silo-to-silo will bind to this endpoint
+                        options.GatewayListeningEndpoint = new IPEndPoint(IPAddress.Any, 40000);
+                        // The socket used by the gateway will bind to this endpoint
+                        options.SiloListeningEndpoint = new IPEndPoint(IPAddress.Any, 50000);
+
+                    })
+                    //.Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
                     // need to configure a grain storage called "PubSubStore" for using
                     // streaming with ExplicitSubscribe pubsub type. Depends on your
                     // application requirements, you can configure your silo with other
@@ -81,8 +85,7 @@ namespace SiloHost
                     .AddMemoryGrainStorage(Constants.OrleansMemoryProvider)
                     .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider);
                 })
-                .ConfigureLogging(logging => logging.AddConsole())
-                .Build();
+                .ConfigureLogging(logging => logging.AddConsole());
 
             return host;
         }

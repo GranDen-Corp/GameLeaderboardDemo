@@ -36,6 +36,7 @@ namespace WebClient
             {
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
             });
+            services.AddSingleton<IClusterClient>(CreateClusterClient);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -65,6 +66,46 @@ namespace WebClient
                 endpoints.MapControllers();
                 endpoints.MapHub<GameHub>("/gameHubs");
             });
+        }
+        private IClusterClient CreateClusterClient(IServiceProvider serviceProvider)
+        {
+            attempt = 0;
+            var invariant = Configuration["Invariant"];
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            var client = new ClientBuilder()
+                              .Configure<ClusterOptions>(options =>
+                              {
+                                  options.ClusterId = Constants.ClusterId;
+                                  options.ServiceId = Constants.ServiceId;
+                              })
+                              .UseAdoNetClustering(options =>
+                              {
+                                  options.Invariant = invariant;
+                                  options.ConnectionString = connectionString;
+                              })
+                              .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider)
+                              .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(IGameGrain).Assembly).WithReferences())
+                              .Build();
+
+            client.Connect(RetryFilter).Wait();
+            return client;
+
+            async Task<bool> RetryFilter(Exception exception)
+            {
+                ; if (exception.GetType() != typeof(SiloUnavailableException))
+                {
+                    Console.WriteLine($"Cluster client failed to connect to cluster with unexpected error.  Exception: {exception}");
+                    return false;
+                }
+                attempt++;
+                Console.WriteLine($"Cluster client attempt {attempt} of {Constants.MaxRetry} failed to connect to cluster.  Exception: {exception}");
+                if (attempt > Constants.MaxRetry)
+                {
+                    return false;
+                }
+                await Task.Delay(TimeSpan.FromSeconds(Constants.RetryDelaySec));
+                return true;
+            }
         }
     }
 }

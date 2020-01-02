@@ -56,40 +56,40 @@ namespace WebClient
                 {
                     webBuilder.UseStartup<Startup>();
                 })
-                .UseOrleans((context, siloBuilder) =>
-                {
-                    IConfiguration Configuration = context.Configuration;
-                    var invariant = Configuration["Invariant"];
-                    var sqlConnectionString = Configuration.GetConnectionString("DefaultConnection");
+                //.UseOrleans((context, siloBuilder) =>
+                //{
+                //    IConfiguration Configuration = context.Configuration;
+                //    var invariant = Configuration["Invariant"];
+                //    var sqlConnectionString = Configuration.GetConnectionString("DefaultConnection");
 
-                    siloBuilder.Configure<ClusterOptions>(options =>
-                    {
-                        options.ClusterId = Constants.ClusterId;
-                        options.ServiceId = Constants.ServiceId;
-                    })
-                    .UseLocalhostClustering()
-                    .AddAdoNetGrainStorage(Constants.OrleansDataStorageProvider, options =>
-                    {
-                        options.Invariant = invariant;
-                        options.ConnectionString = sqlConnectionString;
-                        options.UseJsonFormat = true;
-                    })
-                    .UseAdoNetReminderService(options =>
-                    {
-                        options.Invariant = invariant;
-                        options.ConnectionString = sqlConnectionString;
-                    })
-                    .UseInMemoryReminderService()
-                    // need to configure a grain storage called "PubSubStore" for using
-                    // streaming with ExplicitSubscribe pubsub type. Depends on your
-                    // application requirements, you can configure your silo with other
-                    // stream providers, which can provide other features, such as
-                    // persistence or recoverability. For more information, please see
-                    // http://dotnet.github.io/orleans/Documentation/streaming/streams_programming_APIs.html#fully-managed-and-reliable-streaming-pub-suba-namefully-managed-and-reliable-streaming-pub-suba
-                    .AddMemoryGrainStorage(Constants.OrleansMemoryProvider)
-                    .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider)
-                    .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(GameGrain).Assembly).WithReferences());
-                })
+                //    siloBuilder.Configure<ClusterOptions>(options =>
+                //    {
+                //        options.ClusterId = Constants.ClusterId;
+                //        options.ServiceId = Constants.ServiceId;
+                //    })
+                //    .UseLocalhostClustering()
+                //    .AddAdoNetGrainStorage(Constants.OrleansDataStorageProvider, options =>
+                //    {
+                //        options.Invariant = invariant;
+                //        options.ConnectionString = sqlConnectionString;
+                //        options.UseJsonFormat = true;
+                //    })
+                //    .UseAdoNetReminderService(options =>
+                //    {
+                //        options.Invariant = invariant;
+                //        options.ConnectionString = sqlConnectionString;
+                //    })
+                //    .UseInMemoryReminderService()
+                //    // need to configure a grain storage called "PubSubStore" for using
+                //    // streaming with ExplicitSubscribe pubsub type. Depends on your
+                //    // application requirements, you can configure your silo with other
+                //    // stream providers, which can provide other features, such as
+                //    // persistence or recoverability. For more information, please see
+                //    // http://dotnet.github.io/orleans/Documentation/streaming/streams_programming_APIs.html#fully-managed-and-reliable-streaming-pub-suba-namefully-managed-and-reliable-streaming-pub-suba
+                //    .AddMemoryGrainStorage(Constants.OrleansMemoryProvider)
+                //    .AddSimpleMessageStreamProvider(Constants.OrleansStreamProvider)
+                //    .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(GameGrain).Assembly).WithReferences());
+                //})
                 .UseSerilog((context, config) =>
                 {
                     config.ReadFrom.Configuration(context.Configuration).Enrich.FromLogContext();

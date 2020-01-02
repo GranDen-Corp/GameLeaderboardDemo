@@ -3,3 +3,5 @@
 **/obj
 **/Serilogs
 **/appsettings.Production.json
+*.pubxml
+*.user
